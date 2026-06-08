@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爆款内容选题生成器</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f7f6f3; --surface: #fff; --border: #e4e2db;
+      --text: #1a1a1a; --muted: #6b6b6b; --faint: #9a9a9a;
+      --green: #1D9E75; --green-bg: #E1F5EE; --green-text: #0F6E56;
+      --purple-bg: #EEEDFE; --purple-text: #3C3489;
+      --coral-bg: #FAECE7; --coral-text: #993C1D;
+      --r: 12px; --r-sm: 8px; --r-pill: 99px;
+    }
+    body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+
+    /* Header */
+    .hd { margin-bottom: 2rem; }
+    .hd-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .hd h1 { font-size: 24px; font-weight: 700; letter-spacing: -.5px; }
+    .hd p { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--green-bg); color: var(--green-text); white-space: nowrap; margin-top: 4px; }
+
+    /* Key setup */
+    .key-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; margin-bottom: 1rem; }
+    .key-box label { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 6px; }
+    .key-row { display: flex; gap: 8px; }
+    .key-row input { flex: 1; height: 40px; padding: 0 12px; font-size: 13px; font-family: monospace; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg); color: var(--text); outline: none; }
+    .key-row input:focus { border-color: var(--green); }
+    .key-btn { height: 40px; padding: 0 16px; background: var(--text); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+    .key-btn:hover { opacity: .85; }
+    .key-hint { font-size: 12px; color: var(--faint); margin-top: 6px; }
+    .key-hint a { color: var(--green); text-decoration: none; }
+    .key-ok { font-size: 12px; color: var(--green-text); background: var(--green-bg); padding: 4px 10px; border-radius: var(--r-pill); display: inline-block; margin-top: 6px; }
+
+    /* Card */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    .field input { width: 100%; height: 40px; padding: 0 12px; font-size: 14px; font-family: inherit; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg); color: var(--text); outline: none; }
+    .field input:focus { border-color: var(--green); }
+    .field-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
+    .ptags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ptag { padding: 7px 16px; border-radius: var(--r-pill); border: 1px solid var(--border); font-size: 13px; cursor: pointer; color: var(--muted); background: var(--bg); font-family: inherit; transition: all .15s; user-select: none; }
+    .ptag:hover { border-color: var(--green); color: var(--green); }
+    .ptag.on { background: var(--green); border-color: var(--green); color: #fff; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+    .gen-btn { width: 100%; height: 44px; background: var(--text); color: #fff; border: none; border-radius: var(--r-sm); font-size: 15px; font-weight: 500; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+    .gen-btn:hover { opacity: .85; }
+    .gen-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results { display: flex; flex-direction: column; gap: 10px; }
+    .rcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.1rem 1.25rem; animation: up .3s ease both; }
+    @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .rmeta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .ridx { font-size: 11px; font-weight: 500; color: var(--faint); background: var(--bg); padding: 2px 8px; border-radius: var(--r-pill); }
+    .rdir { font-size: 11px; padding: 2px 10px; border-radius: var(--r-pill); font-weight: 500; }
+    .d0 { background: var(--green-bg); color: var(--green-text); }
+    .d1 { background: var(--purple-bg); color: var(--purple-text); }
+    .d2 { background: var(--coral-bg); color: var(--coral-text); }
+    .rpill { font-size: 11px; padding: 2px 10px; border-radius: var(--r-pill); border: 1px solid var(--border); color: var(--muted); }
+    .rtitle { font-size: 16px; font-weight: 700; line-height: 1.5; margin-bottom: 8px; }
+    .rhook { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+    .rfoot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .rtags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .rtag { font-size: 11px; padding: 2px 8px; border-radius: var(--r-pill); border: 1px solid var(--border); color: var(--faint); }
+    .rtime { font-size: 11px; color: var(--faint); }
+    .empty { text-align: center; padding: 2.5rem 0; color: var(--faint); }
+    .empty-icon { font-size: 36px; margin-bottom: 10px; }
+    .err { font-size: 13px; color: var(--coral-text); padding: 12px; border: 1px solid #F5C4B3; border-radius: var(--r-sm); background: var(--coral-bg); }
+    .footer { text-align: center; margin-top: 2.5rem; font-size: 12px; color: var(--faint); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div class="hd-top">
+      <div>
+        <h1>爆款内容选题生成器</h1>
+        <p>输入品类和目标人群，选择发布平台，一键生成差异化选题与爆款标题</p>
+      </div>
+      <span class="badge">✦ 已学习账号风格</span>
+    </div>
+  </div>
+
+  <!-- API Key 设置 -->
+  <div class="key-box" id="keyBox">
+    <label>Anthropic API Key</label>
+    <div class="key-row">
+      <input type="password" id="keyInput" placeholder="sk-ant-api03-..." />
+      <button class="key-btn" onclick="saveKey()">确认</button>
+    </div>
+    <div class="key-hint">没有 Key？<a href="https://console.anthropic.com" target="_blank">点这里免费注册获取</a></div>
+  </div>
+
+  <div class="card">
+    <div class="form-grid">
+      <div class="field">
+        <label>内容品类</label>
+        <input id="category" placeholder="例：气动头盔" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>目标人群</label>
+        <input id="audience" placeholder="例：20-30岁咖啡骑车友" autocomplete="off" />
+      </div>
+    </div>
+    <div class="field-label">目标平台（可多选）</div>
+    <div class="ptags">
+      <button class="ptag on" data-val="小红书">小红书</button>
+      <button class="ptag on" data-val="抖音">抖音</button>
+      <button class="ptag on" data-val="微信私域">微信私域</button>
+    </div>
+    <div class="divider"></div>
+    <button class="gen-btn" id="genBtn" onclick="generate()">✦ 生成爆款选题</button>
+  </div>
+
+  <div id="output">
+    <div class="empty"><div class="empty-icon">💡</div><p>填写品类和平台，点击生成</p></div>
+  </div>
+
+  <div class="footer">由 Claude AI 驱动 · 内置真实账号标题风格</div>
+</div>
+
+<script>
+  // 平台 tag 切换
+  document.querySelectorAll('.ptag').forEach(t => t.addEventListener('click', () => t.classList.toggle('on')));
+
+  // Key 管理
+  let apiKey = sessionStorage.getItem('ak') || '';
+  if (apiKey) showKeyOk();
+
+  function saveKey() {
+    const v = document.getElementById('keyInput').value.trim();
+    if (!v.startsWith('sk-')) { alert('Key 格式不对，应以 sk- 开头'); return; }
+    apiKey = v;
+    sessionStorage.setItem('ak', v);
+    showKeyOk();
+  }
+
+  function showKeyOk() {
+    const box = document.getElementById('keyBox');
+    box.innerHTML = '<span class="key-ok">✓ API Key 已设置</span> <button onclick="resetKey()" style="margin-left:8px;font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;font-family:inherit;">更换</button>';
+  }
+
+  function resetKey() {
+    apiKey = '';
+    sessionStorage.removeItem('ak');
+    document.getElementById('keyBox').innerHTML = `
+      <label>Anthropic API Key</label>
+      <div class="key-row">
+        <input type="password" id="keyInput" placeholder="sk-ant-api03-..." />
+        <button class="key-btn" onclick="saveKey()">确认</button>
+      </div>
+      <div class="key-hint">没有 Key？<a href="https://console.anthropic.com" target="_blank">点这里免费注册获取</a></div>`;
+  }
+
+  async function generate() {
+    if (!apiKey) { alert('请先填写并确认 API Key'); return; }
+    const category = document.getElementById('category').value.trim();
+    const audience = document.getElementById('audience').value.trim();
+    const platforms = [...document.querySelectorAll('.ptag.on')].map(t => t.dataset.val);
+    if (!category) { alert('请输入内容品类'); return; }
+    if (!platforms.length) { alert('请至少选择一个平台'); return; }
+
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> 生成中...';
+    document.getElementById('output').innerHTML = '';
+
+    const cfg = {
+      '小红书': '种草笔记，亲身体验感强，标题带具体数字或细节，像朋友推荐',
+      '抖音': '极短有力，留悬念，意外转折，让人忍不住想看下去',
+      '微信私域': '干货避坑，横向测评，帮用户做决策，建立信任感'
+    };
+
+    const prompt = `你是一位资深自行车媒体新媒体运营，深度了解骑行圈文化，尤其是咖啡骑群体的审美和语言习惯。
+
+【账号标题风格参考样本（高互动真实数据）】
+- 喝了骑车更快？甜菜根汁横向测评！
+- 一口气骑行300公里选什么骑行裤？
+- Van Rysel顶级车架打5折？
+- 一台10-20万的自行车，有什么魔力？
+- 人生第一台布加迪！
+- 全国仅有一台的自行车！
+- 气动头盔第一次上路，意外发现了一件事
+
+【标题规律】
+- 小红书：亲身体验感+具体数字，口语化，像朋友说话
+- 抖音：极短有力，意外转折悬念，不说教不爹味
+- 微信私域：干货避坑，横向测评，建立信任感
+
+请为以下需求生成内容选题，每个平台各1条，共${platforms.length}条：
+品类：${category}
+目标人群：${audience || '咖啡骑车友'}
+目标平台：${platforms.map(p => p + '（' + (cfg[p]||p) + '）').join('、')}
+
+只返回JSON，不要任何其他文字：
+{"topics":[{"platform":"平台名","direction":"选题角度","title":"爆款标题","hook":"内容钩子一句话","post_time":"建议发布时间","tags":["标签1","标签2"]}]}`;
+
+    try {
+      const res = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          model: 'qwen-turbo',
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || JSON.stringify(data));
+
+      const text = data.choices?.[0]?.message?.content || '';
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('返回格式异常: ' + text.slice(0, 100));
+
+      const parsed = JSON.parse(match[0]);
+      const dc = ['d0','d1','d2'];
+      const out = document.getElementById('output');
+      out.innerHTML = '<div class="results" id="res"></div>';
+      const r = document.getElementById('res');
+
+      parsed.topics.forEach((t, i) => {
+        const c = document.createElement('div');
+        c.className = 'rcard';
+        c.style.animationDelay = (i * .08) + 's';
+        c.innerHTML = `
+          <div class="rmeta">
+            <span class="ridx">选题 ${i+1}</span>
+            <span class="rdir ${dc[i%3]}">${t.direction}</span>
+            <span class="rpill">${t.platform}</span>
+          </div>
+          <div class="rtitle">${t.title}</div>
+          <div class="rhook">${t.hook}</div>
+          <div class="rfoot">
+            <div class="rtags">${t.tags.map(g=>`<span class="rtag">#${g}</span>`).join('')}</div>
+            <div class="rtime">⏰ ${t.post_time}</div>
+          </div>`;
+        r.appendChild(c);
+      });
+
+    } catch(e) {
+      document.getElementById('output').innerHTML = `<div class="err">生成失败：${e.message}</div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '✦ 重新生成';
+  }
+</script>
+</body>
+</html>
